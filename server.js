@@ -58,7 +58,7 @@ const Feedback = mongoose.model("Feedback" , FeedbackSchema);
 
 
 // Login/Register Endpoint
-app.post('/api/auth/login', async (req, res) => {
+app.get('/api/auth/login', async (req, res) => {
   const { firstName, lastName, email, mobile, password } = req.body;
   try {
     let user = await User.findOne({ email });
