@@ -1,63 +1,71 @@
 // server.js
+import dotenv from "dotenv";
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
+import cookieParser from "cookie-parser";
 import { Order } from './models/Order.js';
-import dotenv from "dotenv"
-import express from "express"
-import mongoose from "mongoose"
-import cors from "cors"
-import jwt from "jsonwebtoken"
-import bcrypt from "bcrypt"
-import cookieParser from "cookie-parser"
-
-
 
 dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// ✅ Allowed Origins
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://www.pariharindia.com',
+  'https://parihar-project.vercel.app',
+  'https://pariharproject-production.up.railway.app',
+];
 
-const allowedOrigins = ['http://localhost:5173', 'https://www.pariharindia.com', "https://parihar-project.vercel.app/", 'https://pariharproject-production.up.railway.app/'];
-
+// ✅ CORS Config
 app.use(cors({
-  origin: allowedOrigins,
-  credentials: true
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS Not Allowed'));
+    }
+  },
+  credentials: true,
 }));
-
-
-app.use(cookieParser());
 app.use(express.json());
+app.use(cookieParser());
 
+// ✅ Connect DB
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 }).then(() => console.log('✅ MongoDB Connected'))
   .catch((err) => console.error('❌ MongoDB Error:', err));
 
+// ✅ User Schema
 const UserSchema = new mongoose.Schema({
   firstName: { type: String, required: true },
   lastName: { type: String },
   email: { type: String, required: true, unique: true },
   mobile: { type: String },
   dob: { type: Date, default: null },
-  bio : {type:String , default : "Hello i am a valued customer of Parihar India." },
-  address : {type : String , default : "xyz city , abc country"},
-  password: { type: String, required: true }
+  bio: { type: String, default: "Hello I am a valued customer of Parihar India." },
+  address: { type: String, default: "xyz city, abc country" },
+  password: { type: String, required: true },
 }, { timestamps: true });
 
 const User = mongoose.model('User', UserSchema);
 
+// ✅ Feedback Schema
 const FeedbackSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  email: { type: String, required: true , unique : true},
-  rating: { type: String , required:true},
-  feedback: { type: String, required: true }
+  email: { type: String, required: true, unique: true },
+  rating: { type: String, required: true },
+  feedback: { type: String, required: true },
 }, { timestamps: true });
 
-const Feedback = mongoose.model("Feedback" , FeedbackSchema); 
+const Feedback = mongoose.model("Feedback", FeedbackSchema);
 
-
-
-// Login/Register Endpoint
+// ✅ Login/Register
 app.post('/api/auth/login', async (req, res) => {
   const { firstName, lastName, email, mobile, password } = req.body;
   try {
@@ -88,7 +96,7 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// Profile (protected)
+// ✅ Get Profile (Protected)
 app.get('/api/auth/profile', async (req, res) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'Unauthorized' });
@@ -104,124 +112,63 @@ app.get('/api/auth/profile', async (req, res) => {
   }
 });
 
-app.post('/api/feedback' , async(req,res)=>
-{
-    const authHeader = req.headers['authorization']; // e.g., 'Bearer <token>'
-    const token = authHeader && authHeader.split(' ')[1];
+// ✅ Submit Feedback
+app.post('/api/feedback', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ message: 'No token provided' });
 
-    if (!token) {
-      return res.status(401).json({ message: 'No token provided' });
+  try {
+    jwt.verify(token, process.env.JWT_SECRET);
+    const { name, email, rating, message } = req.body;
+
+    if (!name || !email || !rating || !message) {
+      return res.status(400).json({ success: false, message: "All fields are mandatory." });
     }
 
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET); // Use your secret
-      req.user = decoded; // Attach user info to the request
-    } catch (err) {
-      return res.status(403).json({ message: 'Invalid or expired token' });
+    await Feedback.create({ name, email, rating, feedback: message });
+
+    return res.status(200).json({ success: true, message: "Feedback successfully submitted." });
+  } catch (e) {
+    console.error("Feedback Error:", e);
+    return res.status(500).json({ success: false, message: "Internal server error." });
+  }
+});
+
+// ✅ Update Profile
+app.post('/api/updateProfile', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ message: 'No token provided' });
+
+  try {
+    jwt.verify(token, process.env.JWT_SECRET);
+
+    const { firstName, lastName, email, address, bio, dob, mobile } = req.body;
+    if (!firstName || !lastName || !email || !address || !bio || !dob || !mobile) {
+      return res.status(400).json({ success: false, message: "All fields are mandatory." });
     }
 
+    await User.findOneAndUpdate({ email }, {
+      $set: { firstName, lastName, email, address, bio, dob, mobile }
+    }, { new: true });
 
-    try
-    {
-        const{name , email , rating , message} = req.body;
+    return res.status(200).json({ success: true, message: "Profile updated successfully." });
+  } catch (e) {
+    console.error("Update Profile Error:", e);
+    return res.status(500).json({ success: false, message: "Internal server error." });
+  }
+});
 
-        if(!name || !email ||!rating ||!message)
-        {
-            return res.status(400).json({
-              success : "false",
-              message : "All fields are mandatory."
-            })
-        }
-
-        const response = await Feedback.create({
-          name,
-          email,
-          rating,
-          feedback : message
-        })
-
-        return res.status(200).json({
-          success:true,
-          message :"Feedback is successfully submitted"
-        })
-
-    }catch(e)
-    {
-        console.log('Error occured.');
-        console.log(e);
-         return res.status(400).json({
-              success : "false",
-              message : "Internal server problem."
-        })
-    }
-})
-
-app.post('/api/updateProfile' , async(req,res)=>
-{
-    const authHeader = req.headers['authorization']; // e.g., 'Bearer <token>'
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({ message: 'No token provided' });
-    }
-
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET); // Use your secret
-      req.user = decoded; // Attach user info to the request
-    } catch (err) {
-      return res.status(403).json({ message: 'Invalid or expired token' });
-    }
-
-    try
-    { 
-        const{firstName , lastName , email , address , bio , dob , mobile}  = req.body;
-
-        if(!firstName || !lastName || !email || !address || !bio || !dob || !mobile)
-        {
-            return res.status(400).json({
-              success:false,
-              message:"All fields are mandatory."
-            })
-        }
-
-        const response = await User.findOneAndUpdate(
-          { email: email },          
-          { $set: { firstName , lastName ,email , address , bio , dob , mobile } }, 
-          { new: true }               
-        );
-
-        return res.status(200).json({
-          success:true,
-          message : "Successfully updated."
-        })
-
-    }catch(e)
-    {
-        console.log("ERROR OCCURED WHILE UPDATING THE PROFILE DETAILS : ");
-        console.log(e);
-
-        return res.status(500).json({
-          success : false,
-          message : "Internal server problem"
-        })
-
-    }
-})
-
+// ✅ Create Order
 app.post('/api/orders', async (req, res) => {
   try {
     console.log('Received order data:', req.body);
     const order = new Order(req.body);
     const savedOrder = await order.save();
-    console.log('Order saved successfully:', savedOrder);
+    console.log('Order saved:', savedOrder);
     res.status(201).json({ success: true, order: savedOrder });
   } catch (error) {
-    console.error('Error saving order:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message,
-      details: error
-    });
+    console.error('Order Error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
