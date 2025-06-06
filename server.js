@@ -1,4 +1,4 @@
-// server.js
+// ✅ server.js
 import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
@@ -175,6 +175,7 @@ app.post('/api/orders', async (req, res) => {
   }
 });
 
+// ✅ Start Server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
