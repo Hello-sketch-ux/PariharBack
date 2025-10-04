@@ -19,6 +19,7 @@ const allowedOrigins = [
   'https://parihar-project.vercel.app',
   'https://pariharproject-production.up.railway.app',
   'https://api.pariharindia.com',
+  'https://pariharindia.com',
 ];
 
 // ✅ CORS Config
