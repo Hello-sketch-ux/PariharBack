@@ -101,6 +101,26 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// ✅ Logged-in / Registered Users Count (Dashboard Stats)
+app.get('/api/stats/loggedInUsersCount', async (req, res) => {
+  try {
+    const count = await User.countDocuments();
+
+    res.status(200).json({
+      success: true,
+      count: count
+    });
+  } catch (error) {
+    console.error('Stats Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+ 
+
+
 // ✅ Get Profile (Protected)
 app.get('/api/auth/profile', async (req, res) => {
   const token = req.headers.authorization?.split(' ')[1];
