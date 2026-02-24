@@ -17,8 +17,62 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /* ================= EXCEL FILE ================= */
-const EXCEL_FILE = path.join(__dirname, "feedback.xlsx");
+// Configuration for existing OneDrive Excel file
+const ONEDRIVE_PATH = path.join(__dirname, "..", "..");
+const EXCEL_FILE = path.join(ONEDRIVE_PATH, "Parihar_Feedback", "feedback.xlsx");
+const FEEDBACK_FOLDER = path.dirname(EXCEL_FILE);
+
+// Your existing OneDrive file URL (for reference only)
+const ONEDRIVE_FILE_URL = "https://1drv.ms/x/c/261b1ee4df659396/IQCNwECXyxeWSaAIQ5mIlKWeAZzCWMx2kp9ZZ8SeCLZF5yI?e=cOH1cg";
+
 console.log("📄 Excel file path:", EXCEL_FILE);
+console.log("📁 Feedback folder:", FEEDBACK_FOLDER);
+console.log("🔗 OneDrive URL (reference only):", ONEDRIVE_FILE_URL);
+
+// Function to ensure the local copy exists and is synchronized
+const syncWithOneDrive = () => {
+  // Create feedback folder if it doesn't exist
+  if (!fs.existsSync(FEEDBACK_FOLDER)) {
+    console.log("📁 Creating feedback folder in OneDrive...");
+    fs.mkdirSync(FEEDBACK_FOLDER, { recursive: true });
+    console.log("✅ Feedback folder created successfully!");
+  }
+  
+  // Check if Excel file exists locally
+  if (!fs.existsSync(EXCEL_FILE)) {
+    console.log("⚠️  Local Excel file not found!");
+    console.log("💡 Please ensure your OneDrive is synced or download the file manually");
+    console.log("🔗 OneDrive link:", ONEDRIVE_FILE_URL);
+    console.log("📁 Expected location:", EXCEL_FILE);
+    
+    // Create a placeholder file with instructions
+    const workbook = XLSX.utils.book_new();
+    const placeholderData = [{
+      Name: "Setup Required",
+      Email: "admin@example.com",
+      Rating: 5,
+      Message: "Please download the Excel file from the OneDrive link above and place it in this folder",
+      Date: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+    }];
+    
+    const worksheet = XLSX.utils.json_to_sheet(placeholderData);
+    worksheet['!cols'] = [
+      { wch: 20 },
+      { wch: 30 },
+      { wch: 10 },
+      { wch: 60 },
+      { wch: 25 }
+    ];
+    
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Feedback");
+    XLSX.writeFile(workbook, EXCEL_FILE);
+    console.log("📝 Created setup instructions file. Please replace with actual file from OneDrive.");
+  } else {
+    console.log("✅ Local Excel file found and ready for use");
+  }
+};
+
+syncWithOneDrive();
 
 /* ================= DATABASE CONNECTION ================= */
 const connectDB = async () => {
