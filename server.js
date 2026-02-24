@@ -12,7 +12,7 @@ import User from "./models/User.js";
 
 dotenv.config();
 
-/* ================= PATH FIX ================= */
+/*  PATH FIX  */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -74,7 +74,7 @@ const syncWithOneDrive = () => {
 
 syncWithOneDrive();
 
-/* ================= DATABASE CONNECTION ================= */
+/*  DATABASE CONNECTION  */
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
@@ -90,23 +90,23 @@ connectDB();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-/* ================= MIDDLEWARE ================= */
+/*  MIDDLEWARE  */
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-/* ================= HEALTH CHECK ================= */
+/*  HEALTH CHECK  */
 app.get("/", (req, res) => {
   res.send("Parihar Backend is running 🚀");
 });
 
-/* ================= VALIDATION HELPER ================= */
+/*  VALIDATION HELPER  */
 const validateEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 };
 
-/* ================= SIGN UP API ================= */
+/*  SIGN UP API  */
 app.post("/api/auth/signup", async (req, res) => {
   try {
     const { name, email, password, confirmPassword } = req.body;
@@ -189,8 +189,37 @@ app.post("/api/auth/signup", async (req, res) => {
   }
 });
 
-/* ================= SIGN IN API ================= */
+
+// ✅ Logged-in / Registered Users Count (Dashboard Stats)
+app.get('/api/stats/loggedInUsersCount', async (req, res) => {
+  try {
+    const count = await User.countDocuments();
+
+    res.status(200).json({
+      success: true,
+      count: count
+    });
+  } catch (error) {
+    console.error('Stats Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+ 
+
+
+// ✅ Get Profile (Protected)
+app.get('/api/auth/profile', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ message: 'Unauthorized' });
+});
+
+
+/*  SIGN IN API  */
 app.post("/api/auth/signin", async (req, res) => {
+
   try {
     const { email, password } = req.body;
 
@@ -280,7 +309,7 @@ const validateFeedback = (name, email, rating, message) => {
   return errors;
 };
 
-/* ================= FEEDBACK API ================= */
+/*  FEEDBACK API  */
 app.post("/api/feedback", (req, res) => {
   try {
     const { name, email, rating, message } = req.body;
@@ -358,7 +387,7 @@ app.post("/api/feedback", (req, res) => {
   }
 });
 
-/* ================= START SERVER ================= */
+/*  START SERVER  */
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
 });
