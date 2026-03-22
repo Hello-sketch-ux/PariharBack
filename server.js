@@ -1,4 +1,3 @@
-// ✅ server.js
 import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
@@ -12,27 +11,16 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ Allowed Origins
-const allowedOrigins = [
-  process.env.CLIENT_URL,
-  'https://www.pariharindia.com',
-  'https://pariharindia.com',
-  'https://parihar-project.vercel.app',
-  'https://pariharback.onrender.com',
-];
-
-// ✅ CORS Config
+// ✅ SIMPLE & SAFE CORS (FIXED)
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS Not Allowed'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  origin: [
+    process.env.CLIENT_URL,
+    'https://www.pariharindia.com',
+    'https://pariharindia.com',
+    'https://parihar-project.vercel.app',
+    'https://pariharback.onrender.com'
+  ],
+  credentials: true
 }));
 
 app.use(express.json());
@@ -67,9 +55,24 @@ const FeedbackSchema = new mongoose.Schema({
 
 const Feedback = mongoose.model("Feedback", FeedbackSchema);
 
+// ✅ NEW: Users Count API (IMPORTANT)
+app.get('/api/users/count', async (req, res) => {
+  try {
+    const count = await User.countDocuments();
+    res.status(200).json({ count });
+  } catch (error) {
+    console.error('User Count Error:', error);
+    res.status(500).json({ message: 'Error fetching user count' });
+  }
+});
+
+app.get('/', (req, res) => {
+  res.send("Server working ✅");
+});
 // ✅ Login/Register
 app.post('/api/auth/login', async (req, res) => {
   const { firstName, lastName, email, mobile, password } = req.body;
+
   try {
     let user = await User.findOne({ email });
 
@@ -92,13 +95,14 @@ app.post('/api/auth/login', async (req, res) => {
         mobile: user.mobile,
       }
     });
+
   } catch (err) {
     console.error('Auth Error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// ✅ Get Profile (Protected)
+// ✅ Get Profile
 app.get('/api/auth/profile', async (req, res) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'Unauthorized' });
@@ -106,70 +110,37 @@ app.get('/api/auth/profile', async (req, res) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id).select('-password');
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
     res.status(200).json(user);
-  } catch (err) {
+  } catch {
     res.status(401).json({ message: 'Invalid token' });
   }
 });
 
-// ✅ Submit Feedback
+// ✅ Feedback
 app.post('/api/feedback', async (req, res) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ message: 'No token provided' });
-
   try {
-    jwt.verify(token, process.env.JWT_SECRET);
     const { name, email, rating, message } = req.body;
 
     if (!name || !email || !rating || !message) {
-      return res.status(400).json({ success: false, message: "All fields are mandatory." });
+      return res.status(400).json({ success: false, message: "All fields required" });
     }
 
     await Feedback.create({ name, email, rating, feedback: message });
 
-    return res.status(200).json({ success: true, message: "Feedback successfully submitted." });
+    res.status(200).json({ success: true });
   } catch (e) {
     console.error("Feedback Error:", e);
-    return res.status(500).json({ success: false, message: "Internal server error." });
+    res.status(500).json({ success: false });
   }
 });
 
-// ✅ Update Profile
-app.post('/api/updateProfile', async (req, res) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ message: 'No token provided' });
-
-  try {
-    jwt.verify(token, process.env.JWT_SECRET);
-
-    const { firstName, lastName, email, address, bio, dob, mobile } = req.body;
-    if (!firstName || !lastName || !email || !address || !bio || !dob || !mobile) {
-      return res.status(400).json({ success: false, message: "All fields are mandatory." });
-    }
-
-    await User.findOneAndUpdate({ email }, {
-      $set: { firstName, lastName, email, address, bio, dob, mobile }
-    }, { new: true });
-
-    return res.status(200).json({ success: true, message: "Profile updated successfully." });
-  } catch (e) {
-    console.error("Update Profile Error:", e);
-    return res.status(500).json({ success: false, message: "Internal server error." });
-  }
-});
-
-// ✅ Create Order
+// ✅ Orders
 app.post('/api/orders', async (req, res) => {
   try {
-    console.log('Received order data:', req.body);
     const order = new Order(req.body);
     const savedOrder = await order.save();
-    console.log('Order saved:', savedOrder);
     res.status(201).json({ success: true, order: savedOrder });
   } catch (error) {
-    console.error('Order Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
