@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 5000;
 
 // ✅ Allowed Origins
 const allowedOrigins = [
-  'http://localhost:5173',
+  process.env.CLIENT_URL,
   'https://www.pariharindia.com',
   'https://pariharindia.com',
   'https://parihar-project.vercel.app',
