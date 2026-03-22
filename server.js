@@ -17,7 +17,7 @@ const allowedOrigins = [
   'http://localhost:5173',
   'https://www.pariharindia.com',
   'https://parihar-project.vercel.app',
-  'https://pariharproject-production.up.railway.app',
+  'https://pariharback.onrender.com',
 ];
 
 // ✅ CORS Config
@@ -38,10 +38,8 @@ app.use(express.json());
 app.use(cookieParser());
 
 // ✅ Connect DB
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => console.log('✅ MongoDB Connected'))
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log('✅ MongoDB Connected'))
   .catch((err) => console.error('❌ MongoDB Error:', err));
 
 // ✅ User Schema
