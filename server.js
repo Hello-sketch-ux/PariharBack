@@ -16,6 +16,7 @@ const PORT = process.env.PORT || 5000;
 const allowedOrigins = [
   'http://localhost:5173',
   'https://www.pariharindia.com',
+  'https://pariharindia.com',
   'https://parihar-project.vercel.app',
   'https://pariharback.onrender.com',
 ];
