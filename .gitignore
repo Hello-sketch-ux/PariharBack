@@ -1,7 +1,7 @@
 .env
 node_modules/
 # ✅ Exclude feedback data files - each team member has their own local copy
-data/feedback.xlsx
-data/*.xlsx
+# data/feedback.xlsx  # Commented out to allow Excel file in Git for team sharing
+# data/*.xlsx  # Commented out to allow Excel file in Git for team sharing
 # Keep the data folder structure tracked, but not the actual data
 !data/.gitkeep

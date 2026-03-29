@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import cookieParser from "cookie-parser";
 import { Order } from './models/Order.js';
+import { initializeExcel, appendFeedbackToExcel } from './utils/excel-feedback.js';
 
 dotenv.config();
 const app = express();
@@ -26,6 +27,9 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+// ✅ Initialize Excel file
+initializeExcel();
+
 // ✅ Connect DB
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ MongoDB Connected'))
@@ -45,10 +49,10 @@ const UserSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', UserSchema);
 
-// ✅ Feedback Schema
+// ✅ Feedback Schema (MongoDB backup - optional)
 const FeedbackSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
+  email: { type: String, required: true },
   rating: { type: String, required: true },
   feedback: { type: String, required: true },
 }, { timestamps: true });
@@ -116,7 +120,7 @@ app.get('/api/auth/profile', async (req, res) => {
   }
 });
 
-// ✅ Feedback
+// ✅ Feedback - Save to Excel + MongoDB (optional backup)
 app.post('/api/feedback', async (req, res) => {
   try {
     const { name, email, rating, message } = req.body;
@@ -125,12 +129,23 @@ app.post('/api/feedback', async (req, res) => {
       return res.status(400).json({ success: false, message: "All fields required" });
     }
 
-    await Feedback.create({ name, email, rating, feedback: message });
+    // Save to Excel (primary storage)
+    await appendFeedbackToExcel({ name, email, rating, feedback: message });
 
-    res.status(200).json({ success: true });
+    // Optional: Also save to MongoDB as backup (remove if not needed)
+    // await Feedback.create({ name, email, rating, feedback: message });
+
+    res.status(200).json({ 
+      success: true,
+      message: "Thank you for your feedback!"
+    });
   } catch (e) {
     console.error("Feedback Error:", e);
-    res.status(500).json({ success: false });
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to submit feedback. Please try again.",
+      error: e.message 
+    });
   }
 });
 
